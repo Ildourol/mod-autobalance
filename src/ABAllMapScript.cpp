@@ -100,12 +100,30 @@ void AutoBalance_AllMapScript::OnPlayerEnterAll(Map* map, Player* player)
                             // notify GMs that they won't be accounted for
                             if (player->IsGameMaster())
                                 chatHandle.PSendSysMessage(ABGetLocaleText(locale, "welcome_to_gm").c_str());
+
+                            if (AnnounceEnable && AnnounceOnEnter && (!AnnounceToGMsOnly || player->IsGameMaster()))
+                            {
+                                chatHandle.PSendSysMessage("|cff4CFF00[AutoBalance]|r This instance is balanced for %u active players. Baseline: %u. Health: %.0f%%, Damage: %.0f%%.",
+                                    mapABInfo->adjustedPlayerCount,
+                                    mapABInfo->baselinePlayers,
+                                    mapABInfo->healthScale * 100.0f,
+                                    mapABInfo->damageScale * 100.0f);
+                            }
                         }
                         else
                         {
                             // announce non-GMs entering the instance only
                             if (!player->IsGameMaster())
                                 chatHandle.PSendSysMessage(ABGetLocaleText(locale, "announce_non_gm_entering_instance").c_str(), player->GetName().c_str(), mapABInfo->playerCount, mapABInfo->adjustedPlayerCount);
+
+                            if (AnnounceEnable && AnnounceOnPlayerCountChange && (!AnnounceToGMsOnly || thisPlayer->IsGameMaster()))
+                            {
+                                chatHandle.PSendSysMessage("|cff4CFF00[AutoBalance]|r Player entered. Now balanced for %u active players. Baseline: %u. Health: %.0f%%, Damage: %.0f%%.",
+                                    mapABInfo->adjustedPlayerCount,
+                                    mapABInfo->baselinePlayers,
+                                    mapABInfo->healthScale * 100.0f,
+                                    mapABInfo->damageScale * 100.0f);
+                            }
                         }
                     }
                 }
@@ -218,6 +236,15 @@ void AutoBalance_AllMapScript::OnPlayerLeaveAll(Map* map, Player* player)
                                 player->GetName().c_str(),
                                 mapABInfo->playerCount,
                                 mapABInfo->adjustedPlayerCount);
+                        }
+
+                        if (AnnounceEnable && AnnounceOnPlayerCountChange && (!AnnounceToGMsOnly || thisPlayer->IsGameMaster()))
+                        {
+                            chatHandle.PSendSysMessage("|cff4CFF00[AutoBalance]|r Player left. Now balanced for %u active players. Baseline: %u. Health: %.0f%%, Damage: %.0f%%.",
+                                mapABInfo->adjustedPlayerCount,
+                                mapABInfo->baselinePlayers,
+                                mapABInfo->healthScale * 100.0f,
+                                mapABInfo->damageScale * 100.0f);
                         }
                     }
                 }

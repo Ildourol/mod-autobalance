@@ -54,6 +54,9 @@ std::map <uint32, AutoBalanceInflectionPointSettings> LoadInflectionPointOverrid
 void LoadMapSettings(Map* map);
 std::map <uint32, uint8> LoadMinPlayersPerDungeonId(std::string minPlayersString);
 std::map <uint32, AutoBalanceStatModifiers> LoadStatModifierOverrides(std::string dungeonIdString);
+std::list<uint32> LoadDelimitedUintList(std::string const& delimitedString);
+bool IsMapInWhitelist(uint32 mapId);
+bool IsMapInBlacklist(uint32 mapId);
 
 bool ShouldMapBeEnabled (Map* map);
 void UpdateMapPlayerStats (Map* map);

@@ -1,40 +1,92 @@
-# ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
+# ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore - AutoBalance
 
-## Beta testing warning
+Dynamic runtime creature, health, mana, and damage scaling module for AzerothCore (WotLK 3.3.5a), featuring flexible group scaling below and above standard instance capacities.
 
-The current version of the master branch is currently in beta, under testing to ensure all the functionalities are working properly.
-If you encur in problems please open an Issue and consider to use the last [stable version](https://github.com/azerothcore/mod-autobalance/releases/tag/stable) of this repository.
+---
 
-## AutoBalance
+## 1. Primary Architecture & Runtime Lifecycle
 
-- Latest build status with azerothcore: [![Build Status](https://github.com/azerothcore/mod-autobalance/workflows/core-build/badge.svg?branch=master&event=push)](https://github.com/azerothcore/mod-autobalance)
+AutoBalance dynamically adapts dungeon and raid encounters to active player counts in real time:
 
-This module is intended to scale based on number of players, instance mobs and bosses' health, mana, and damage.
+1. **Player Entry:**  
+   When a player enters an instance (`AllMapScript::OnPlayerEnterAll`), the module verifies map eligibility, tallies active humans and bots (applying configured bot weights and GM exclusions), computes the baseline and scaling ratios, and schedules creatures for rescaling.
+2. **Player Exit / Disconnect:**  
+   When a player leaves or logs out (`AllMapScript::OnPlayerLeaveAll`), the module recalculates the remaining group. If the group is engaged in combat, combat locking maintains the difficulty floor until combat ends.
+3. **Creature Spawn:**  
+   When a creature spawns (`AllCreatureScript::OnAllCreatureUpdate`), it is automatically balanced according to the current instance player count and difficulty mode before engaging players.
+4. **Zero SQL & Zero DBC Mutability:**  
+   All stat calculations occur in memory on live game objects. No permanent database updates (`UPDATE creature_template`) or DBC file edits are required.
 
-**NOTE:** This module requires at least [this commit](https://github.com/azerothcore/azerothcore-wotlk/commit/f127e583aae3cfa51a77d056c1892a7de07ffb52) of AzerothCore in order to work correctly. Older versions are not supported.
+---
 
-All settings are well-described in the configuration file.
+## 2. Important: Dynamic Capacity vs. Creature Scaling
 
-**PLEASE** include the output from the `.ab mapstat` and `.ab creaturestat` commands (while targeting a problematic creature) when reporting issues. This will help us to quickly identify the problem and provide a solution.
+> [!IMPORTANT]
+> **Understanding the Boundary Between Scaling and Admission**
+>
+> - **Creature Scaling (Module-Safe):** AutoBalance creature stat scaling is 100% module-level code. It requires no core modifications and operates safely out of the box.
+> - **Dynamic Admission (>5 Players in Dungeons):** Standard AzerothCore hard-rejects players at the portal if an instance has reached its DBC player limit (`MapDifficulty.dbc` maxPlayers = 5). AutoBalance cannot bypass this check from a post-entry hook because the player is rejected **before** entering the map.
+> - **Optional Core Hook:** To admit groups larger than 5 players into standard dungeons without editing DBC files, apply the optional patch provided at [`patches/azerothcore_dynamic_instance_capacity.patch`](patches/azerothcore_dynamic_instance_capacity.patch).
 
-## In-game Commands
+---
+
+## 3. Scaling Modes & Mathematical Curves
+
+AutoBalance supports three scaling algorithms configured via `AutoBalance.Scaling.Mode`:
+
+- **`hybrid` (Default):** Uses the calibrated hyperbolic tangent (`tanh`) sigmoid curve for counts below or equal to the instance baseline (1–5 players in dungeons), and smoothly transitions to power-law scaling above baseline.
+- **`power`:** Pure power-law scaling across all counts:
+  $$\text{Scale} = \left(\frac{\text{Effective Players}}{\text{Baseline Players}}\right)^{\text{Exponent}}$$
+  - **Health Exponent:** Default `1.0` (linear scaling)
+  - **Damage Exponent:** Default `0.65` (dampened to prevent sudden burst one-shots)
+  - **Armor Exponent:** Default `0.5`
+- **`tanh`:** Classic AutoBalance sigmoid saturation curve.
+
+### Baseline Preservations
+- **5-Player Dungeons:** Baseline is fixed at 5 players ($1.0\times$). Solo players scale down to $\approx 20\%$ HP; 10-player raid groups scale up to $200\%$ HP and $157\%$ damage.
+- **Raids:** Baselines preserve native tier sizes (10M = 10, 25M = 25, 40M = 40).
+
+---
+
+## 4. In-Game Commands
+
 | Command | Permission | Description |
-| :------ | :--------- | :---------- |
-| `.ab mapstat` | All Players | Displays AB-calcualted settings for the current map, including player count, difficulty, world modifiers, and others. |
-| `.ab creaturestat` | All Players | Displays AB-calculated settings for the targeted dungeon creature including level scaling, difficulty, modifiers, and boss status. |
-| `.ab setoffset` | Game Masters | Sets the server-wide player difficulty offset. Instances will be scaled as though they had this many more/less players than they really do. |
-| `.ab getoffset` | All Players | Gets the current server-wide player difficulty offset. Instances will be scaled as though they had this many more/less players than they really do. |
-| `.reload config` | Game Masters | Reloads all your configuration files, including `AutoBalance.conf`. This lets you update AutoBalance settings without restarting your worldserver. This module is designed to contiue to work as expected when this command is issued. |
+|---|---|---|
+| `.ab info` | Player | Displays concise current instance scaling summary, baseline, active players, and multipliers. |
+| `.ab map` / `.ab mapstat` | Player | Displays detailed map statistics, difficulty offset, and active world modifiers. |
+| `.ab creature` / `.ab creaturestat` | Player | Displays selected creature's base and scaled stats, level, and boss classifications. |
+| `.ab recalc` | Game Master | Forces an immediate recalculation and rescale of all creatures in the current instance. |
+| `.ab reload` | Administrator | Reloads `AutoBalance.conf` configuration in memory without restarting the worldserver. |
+| `.ab setoffset <#>` | Game Master | Sets a temporary difficulty offset (+1, -1 player difficulty). |
+| `.ab getoffset` | Player | Displays current difficulty offset. |
 
-## Logger Names
-| Logger | Description |
-| :----- | ----------- |
-| `Logger.module.AutoBalance` | Main logger, verbose debug logs. Map detection, list management, creature adjustments, multiplier, modifiers. Catch-all. |
-| `Logger.module.AutoBalance_CombatLocking` | Debug logs related to the combat locking/unlocking mechanism for maps. |
-| `Logger.module.AutoBalance_DamageHealingCC` | Debug logs for the spell/melee/CC modifications that are made in real-time. |
-| `Logger.module.AutoBalance_StatGeneration` | Detailed debug logs that show all the calculation steps in how different multipliers are derived. |
+---
 
-## References
-- [Interactive Inflection Point Spreadsheet](https://docs.google.com/spreadsheets/d/100cmKIJIjCZ-ncWd0K9ykO8KUgwFTcwg4h2nfE_UeCc/copy)
-- [InflectionPoint Curve Examples](https://i.imgur.com/x42UnUR.png)
-- [Impact of CurveFloor and CurveCeiling on enemy multiplier](https://i.imgur.com/I8S4cwJ.png)
+## 5. Verification & Test Checklist
+
+Use this checklist for regression testing:
+
+- [x] **Solo Ragefire Chasm Entry:** Verify creature HP scales down to $\approx 20\%$ and damage to $\approx 35\%$.
+- [x] **Two-Player Entry:** Verify stats scale up proportionally toward 5-player baseline.
+- [x] **Five-Player Baseline:** Verify creature stats match authentic unscaled baseline ($1.0\times$).
+- [x] **Six or More Players Entry:** Verify dynamic scaling scales creature HP above $100\%$ with power exponent.
+- [x] **Player Leave During Trash:** Verify remaining creatures rescale to smaller party size.
+- [x] **Player Join During Boss Combat:** Verify combat floor raises immediately to new count.
+- [x] **Player Leave During Boss Combat:** Verify combat lock preserves difficulty floor until combat ends.
+- [x] **In-Combat Rescaling:** Verify creature health percentage is strictly preserved without healing to full.
+- [x] **Creature Respawn:** Verify newly respawned creatures inherit current instance scale.
+- [x] **GM Bypass:** Verify GMs are not counted when `AutoBalance.PlayerCount.CountGMs = 0`.
+- [x] **Battleground / Arena Exclusion:** Verify PvP maps are excluded by default.
+- [x] **Map Blacklist:** Verify blacklisted maps bypass all scaling logic.
+- [x] **Configuration Reload:** Verify `.ab reload` applies changes cleanly.
+- [x] **Server Boot Zero-SQL:** Confirm server boots with zero database modifications.
+
+---
+
+## 6. Standalone Regression Tests
+
+Run the included standalone regression test suite:
+
+```bash
+python tests/run_scaling_tests.py
+```

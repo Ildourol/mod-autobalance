@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AzerothCore Module Contributor <noreply@azerothcore.org>
+Date: Mon, 23 Nov 2026 23:00:00 +0000
+Subject: [PATCH] core: Add OnBeforeCheckInstanceMaxPlayers script hook
+
+Enables modules (such as mod-autobalance) to dynamically override the effective
+maximum player capacity of instances prior to the admission check in Map.cpp,
+without requiring DBC modifications or SQL database edits.
+
+---
+ src/server/game/Maps/Map.cpp         | 2 ++
+ src/server/game/Scripting/ScriptMgr.h | 3 +++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/src/server/game/Maps/Map.cpp b/src/server/game/Maps/Map.cpp
+index 1234567..89abcde 100644
+--- a/src/server/game/Maps/Map.cpp
++++ b/src/server/game/Maps/Map.cpp
+@@ -2022,6 +2022,8 @@ Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
+     // cannot enter if the instance is full (player cap), GMs don't count
+     uint32 maxPlayers = GetMaxPlayers();
++    sScriptMgr->OnBeforeCheckInstanceMaxPlayers(player, GetEntry(), GetId(), Difficulty(GetSpawnMode()), maxPlayers);
++
+     if (GetPlayersCountExceptGMs() >= (loginCheck ? maxPlayers + 1 : maxPlayers))
+     {
+         LOG_DEBUG("maps", "MAP: Instance '{}' of map '{}' cannot have more than '{}' players. Player '{}' rejected", GetInstanceId(), GetMapName(), maxPlayers, player->GetName());
+diff --git a/src/server/game/Scripting/ScriptMgr.h b/src/server/game/Scripting/ScriptMgr.h
+index 2345678..9abcdef 100644
+--- a/src/server/game/Scripting/ScriptMgr.h
++++ b/src/server/game/Scripting/ScriptMgr.h
+@@ -1050,6 +1050,9 @@ public:
+     // Called before checking instance player capacity in InstanceMap::CannotEnter
++    virtual void OnBeforeCheckInstanceMaxPlayers(Player* /*player*/, MapEntry const* /*mapEntry*/, uint32 /*mapId*/, Difficulty /*difficulty*/, uint32& /*maxPlayers*/) {}
++
+-- 
+2.39.1.windows.1

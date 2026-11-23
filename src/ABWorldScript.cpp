@@ -497,4 +497,92 @@ void AutoBalance_WorldScript::SetInitialWorldSettings()
     //
 
     Announcement = sConfigMgr->GetOption<bool>("AutoBalanceAnnounce.enable", true);
+
+    //
+    // Extended Dynamic Capacity, Scaling, and Ported tWoW Settings
+    //
+
+    DynamicCapacityEnable = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.Enable", false);
+    DynamicCapacityDungeonsEnable = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.Dungeons.Enable", true);
+    DynamicCapacityRaidsEnable = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.Raids.Enable", false);
+    DynamicCapacityNormalDungeonMaxPlayers = sConfigMgr->GetOption<uint32>("AutoBalance.DynamicCapacity.NormalDungeonMaxPlayers", 25);
+    DynamicCapacityHeroicDungeonMaxPlayers = sConfigMgr->GetOption<uint32>("AutoBalance.DynamicCapacity.HeroicDungeonMaxPlayers", 25);
+    DynamicCapacityNormalRaidMaxPlayers = sConfigMgr->GetOption<uint32>("AutoBalance.DynamicCapacity.NormalRaidMaxPlayers", 40);
+    DynamicCapacityHeroicRaidMaxPlayers = sConfigMgr->GetOption<uint32>("AutoBalance.DynamicCapacity.HeroicRaidMaxPlayers", 40);
+    DynamicCapacityUseMapOverrides = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.UseMapOverrides", true);
+    DynamicCapacityRequireGroup = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.RequireGroup", false);
+    DynamicCapacityGMBypass = sConfigMgr->GetOption<bool>("AutoBalance.DynamicCapacity.GMBypass", true);
+    RaidScalingInDungeons = sConfigMgr->GetOption<bool>("AutoBalance.RaidScalingInDungeons", true);
+
+    ScalingMode = sConfigMgr->GetOption<std::string>("AutoBalance.Scaling.Mode", "hybrid");
+    ScalingHealthExponent = sConfigMgr->GetOption<float>("AutoBalance.Scaling.HealthExponent", 1.0f);
+    ScalingDamageExponent = sConfigMgr->GetOption<float>("AutoBalance.Scaling.DamageExponent", 0.65f);
+    ScalingArmorExponent  = sConfigMgr->GetOption<float>("AutoBalance.Scaling.ArmorExponent", 0.5f);
+    ScalingManaExponent   = sConfigMgr->GetOption<float>("AutoBalance.Scaling.ManaExponent", 1.0f);
+
+    MinPlayersEnable = sConfigMgr->GetOption<bool>("AutoBalance.MinPlayers.Enable", true);
+    MinPlayersDungeon = sConfigMgr->GetOption<uint32>("AutoBalance.MinPlayers.Dungeon", minPlayersNormal);
+    MinPlayersRaid = sConfigMgr->GetOption<uint32>("AutoBalance.MinPlayers.Raid", minPlayersRaid);
+
+    MaxPlayersEnable = sConfigMgr->GetOption<bool>("AutoBalance.MaxPlayers.Enable", true);
+    MaxPlayersDungeon = sConfigMgr->GetOption<uint32>("AutoBalance.MaxPlayers.Dungeon", 25);
+    MaxPlayersRaid = sConfigMgr->GetOption<uint32>("AutoBalance.MaxPlayers.Raid", 40);
+
+    CreatureNormalEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Normal.Enable", true);
+    CreatureEliteEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Elite.Enable", true);
+    CreatureBossEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Boss.Enable", true);
+    CreatureSummonEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Summon.Enable", false);
+    CreaturePetEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Pet.Enable", false);
+    CreatureTotemEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Totem.Enable", false);
+    CreatureTriggerEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Trigger.Enable", false);
+    CreatureCritterEnable = sConfigMgr->GetOption<bool>("AutoBalance.Creature.Critter.Enable", false);
+
+    BossHealthMultiplier = sConfigMgr->GetOption<float>("AutoBalance.Boss.HealthMultiplier", 1.0f);
+    BossDamageMultiplier = sConfigMgr->GetOption<float>("AutoBalance.Boss.DamageMultiplier", 1.0f);
+    BossArmorMultiplier = sConfigMgr->GetOption<float>("AutoBalance.Boss.ArmorMultiplier", 1.0f);
+    BossManaMultiplier = sConfigMgr->GetOption<float>("AutoBalance.Boss.ManaMultiplier", 1.0f);
+
+    LevelScalingEnable = sConfigMgr->GetOption<bool>("AutoBalance.LevelScaling.Enable", LevelScaling);
+    LevelScalingScaleCreatureLevel = sConfigMgr->GetOption<bool>("AutoBalance.LevelScaling.ScaleCreatureLevel", LevelScaling);
+    LevelScalingMinLevel = sConfigMgr->GetOption<uint8>("AutoBalance.LevelScaling.MinLevel", 1);
+    LevelScalingMaxLevel = sConfigMgr->GetOption<uint8>("AutoBalance.LevelScaling.MaxLevel", 83);
+    LevelScalingUseHighestPlayerLevel = sConfigMgr->GetOption<bool>("AutoBalance.LevelScaling.UseHighestPlayerLevel", true);
+    LevelScalingUseAveragePlayerLevel = sConfigMgr->GetOption<bool>("AutoBalance.LevelScaling.UseAveragePlayerLevel", false);
+
+    RewardsEnable = sConfigMgr->GetOption<bool>("AutoBalance.Rewards.Enable", false);
+    RewardsScaleXP = sConfigMgr->GetOption<bool>("AutoBalance.Rewards.ScaleXP", false);
+    RewardsScaleMoney = sConfigMgr->GetOption<bool>("AutoBalance.Rewards.ScaleMoney", false);
+    RewardsScaleLoot = sConfigMgr->GetOption<bool>("AutoBalance.Rewards.ScaleLoot", false);
+
+    AnnounceEnable = sConfigMgr->GetOption<bool>("AutoBalance.Announce.Enable", Announcement);
+    AnnounceOnEnter = sConfigMgr->GetOption<bool>("AutoBalance.Announce.OnEnter", true);
+    AnnounceOnPlayerCountChange = sConfigMgr->GetOption<bool>("AutoBalance.Announce.OnPlayerCountChange", true);
+    AnnounceToGMsOnly = sConfigMgr->GetOption<bool>("AutoBalance.Announce.ToGMsOnly", false);
+    DebugLog = sConfigMgr->GetOption<bool>("AutoBalance.Debug", false);
+
+    PlayerCountCountGMs = sConfigMgr->GetOption<bool>("AutoBalance.PlayerCount.CountGMs", false);
+    PlayerCountCountDeadPlayers = sConfigMgr->GetOption<bool>("AutoBalance.PlayerCount.CountDeadPlayers", true);
+    PlayerCountCountOfflinePlayers = sConfigMgr->GetOption<bool>("AutoBalance.PlayerCount.CountOfflinePlayers", false);
+    PlayerCountCountPlayersAtEntranceOnly = sConfigMgr->GetOption<bool>("AutoBalance.PlayerCount.CountPlayersAtEntranceOnly", false);
+    PlayerCountCountBots = sConfigMgr->GetOption<bool>("AutoBalance.PlayerCount.CountBots", true);
+    PlayerCountBotWeight = sConfigMgr->GetOption<float>("AutoBalance.PlayerCount.BotWeight", 1.0f);
+
+    GroupRequireGroup = sConfigMgr->GetOption<bool>("AutoBalance.RequireGroup", false);
+    GroupCountOnlySameGroup = sConfigMgr->GetOption<bool>("AutoBalance.CountOnlySameGroup", false);
+
+    RecalculationThrottleMs = sConfigMgr->GetOption<uint32>("AutoBalance.Recalculation.ThrottleMs", 1000);
+    RescaleInCombat = sConfigMgr->GetOption<bool>("AutoBalance.RescaleInCombat", true);
+    PreserveHealthPercent = sConfigMgr->GetOption<bool>("AutoBalance.PreserveHealthPercent", true);
+
+    EligibilityDungeonsEnable = sConfigMgr->GetOption<bool>("AutoBalance.Dungeons.Enable", true);
+    EligibilityRaidsEnable = sConfigMgr->GetOption<bool>("AutoBalance.Raids.Enable", true);
+    EligibilityBattlegroundsEnable = sConfigMgr->GetOption<bool>("AutoBalance.Battlegrounds.Enable", false);
+    EligibilityArenasEnable = sConfigMgr->GetOption<bool>("AutoBalance.Arenas.Enable", false);
+    EligibilityOpenWorldEnable = sConfigMgr->GetOption<bool>("AutoBalance.OpenWorld.Enable", false);
+
+    MapWhitelistEnable = sConfigMgr->GetOption<bool>("AutoBalance.MapWhitelist.Enable", false);
+    mapWhitelist = LoadDelimitedUintList(sConfigMgr->GetOption<std::string>("AutoBalance.MapWhitelist", ""));
+
+    MapBlacklistEnable = sConfigMgr->GetOption<bool>("AutoBalance.MapBlacklist.Enable", false);
+    mapBlacklist = LoadDelimitedUintList(sConfigMgr->GetOption<std::string>("AutoBalance.MapBlacklist", ""));
 }

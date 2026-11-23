@@ -318,4 +318,113 @@ extern float                                                         StatModifie
 extern float                                                         StatModifierRaid40M_Boss_Armor;
 extern float                                                         StatModifierRaid40M_Boss_CCDuration;
 
+//
+// Extended Dynamic Capacity, Power-Law Scaling, and Ported tWoW Features
+//
+
+struct AutoBalanceMapOverride
+{
+    int32 baselinePlayers = -1;
+    int32 maxPlayers = -1;
+    float healthExponent = -1.0f;
+    float damageExponent = -1.0f;
+};
+
+// Dynamic Capacity
+extern bool                                                          DynamicCapacityEnable;
+extern bool                                                          DynamicCapacityDungeonsEnable;
+extern bool                                                          DynamicCapacityRaidsEnable;
+extern uint32                                                        DynamicCapacityNormalDungeonMaxPlayers;
+extern uint32                                                        DynamicCapacityHeroicDungeonMaxPlayers;
+extern uint32                                                        DynamicCapacityNormalRaidMaxPlayers;
+extern uint32                                                        DynamicCapacityHeroicRaidMaxPlayers;
+extern bool                                                          DynamicCapacityUseMapOverrides;
+extern bool                                                          DynamicCapacityRequireGroup;
+extern bool                                                          DynamicCapacityGMBypass;
+extern std::map<uint32, uint32>                                      DynamicCapacityMapOverrides;
+extern bool                                                          RaidScalingInDungeons;
+
+// Scaling Mode & Exponents
+extern std::string                                                   ScalingMode;
+extern float                                                         ScalingHealthExponent;
+extern float                                                         ScalingDamageExponent;
+extern float                                                         ScalingArmorExponent;
+extern float                                                         ScalingManaExponent;
+
+// Min & Max Players
+extern bool                                                          MinPlayersEnable;
+extern uint32                                                        MinPlayersDungeon;
+extern uint32                                                        MinPlayersRaid;
+extern bool                                                          MaxPlayersEnable;
+extern uint32                                                        MaxPlayersDungeon;
+extern uint32                                                        MaxPlayersRaid;
+
+// Per-Map Overrides
+extern std::map<uint32, AutoBalanceMapOverride>                      mapOverrides;
+
+// Creature Type & Rank Filtering
+extern bool                                                          CreatureNormalEnable;
+extern bool                                                          CreatureEliteEnable;
+extern bool                                                          CreatureBossEnable;
+extern bool                                                          CreatureSummonEnable;
+extern bool                                                          CreaturePetEnable;
+extern bool                                                          CreatureTotemEnable;
+extern bool                                                          CreatureTriggerEnable;
+extern bool                                                          CreatureCritterEnable;
+
+// Boss Specific Multipliers
+extern float                                                         BossHealthMultiplier;
+extern float                                                         BossDamageMultiplier;
+extern float                                                         BossArmorMultiplier;
+extern float                                                         BossManaMultiplier;
+
+// Level Scaling Options
+extern bool                                                          LevelScalingEnable;
+extern bool                                                          LevelScalingScaleCreatureLevel;
+extern uint8                                                         LevelScalingMinLevel;
+extern uint8                                                         LevelScalingMaxLevel;
+extern bool                                                          LevelScalingUseHighestPlayerLevel;
+extern bool                                                          LevelScalingUseAveragePlayerLevel;
+
+// Rewards
+extern bool                                                          RewardsEnable;
+extern bool                                                          RewardsScaleXP;
+extern bool                                                          RewardsScaleMoney;
+extern bool                                                          RewardsScaleLoot;
+
+// Announcements & Debug
+extern bool                                                          AnnounceEnable;
+extern bool                                                          AnnounceOnEnter;
+extern bool                                                          AnnounceOnPlayerCountChange;
+extern bool                                                          AnnounceToGMsOnly;
+extern bool                                                          DebugLog;
+
+// Player Count Rules
+extern bool                                                          PlayerCountCountGMs;
+extern bool                                                          PlayerCountCountDeadPlayers;
+extern bool                                                          PlayerCountCountOfflinePlayers;
+extern bool                                                          PlayerCountCountPlayersAtEntranceOnly;
+extern bool                                                          PlayerCountCountBots;
+extern float                                                         PlayerCountBotWeight;
+
+// Group Rules
+extern bool                                                          GroupRequireGroup;
+extern bool                                                          GroupCountOnlySameGroup;
+
+// Recalculation Throttle & Combat Safety
+extern uint32                                                        RecalculationThrottleMs;
+extern bool                                                          RescaleInCombat;
+extern bool                                                          PreserveHealthPercent;
+
+// Eligibility & Whitelist / Blacklist
+extern bool                                                          EligibilityDungeonsEnable;
+extern bool                                                          EligibilityRaidsEnable;
+extern bool                                                          EligibilityBattlegroundsEnable;
+extern bool                                                          EligibilityArenasEnable;
+extern bool                                                          EligibilityOpenWorldEnable;
+extern bool                                                          MapWhitelistEnable;
+extern std::list<uint32>                                             mapWhitelist;
+extern bool                                                          MapBlacklistEnable;
+extern std::list<uint32>                                             mapBlacklist;
+
 #endif

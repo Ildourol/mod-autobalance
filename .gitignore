@@ -15,7 +15,9 @@
 CMakeLists.txt.user
 *.bak
 *.patch
+!patches/*.patch
 *.diff
+!patches/*.diff
 *.REMOTE.*
 *.BACKUP.*
 *.BASE.*

@@ -651,6 +651,20 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
     // Generate the default multiplier
     float defaultMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettings);
 
+    if (ScalingMode == "power")
+    {
+        defaultMultiplier = mapABInfo->healthScale;
+    }
+    else if (ScalingMode == "hybrid")
+    {
+        // When effective player count exceeds the baseline (e.g. >5 in dungeon, >10/25/40 in raid),
+        // scale upward continuously using the power-law scale!
+        if (mapABInfo->effectiveScalingPlayers > (float)mapABInfo->baselinePlayers && mapABInfo->baselinePlayers > 0)
+        {
+            defaultMultiplier *= mapABInfo->healthScale;
+        }
+    }
+
     if (!sABScriptMgr->OnAfterDefaultMultiplier(creature, defaultMultiplier))
         return;
 
@@ -662,6 +676,15 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
     float statMod_armor = statModifiers.armor;
     float statMod_damage = statModifiers.damage;
     float statMod_ccDuration = statModifiers.ccduration;
+
+    // Boss Specific Multipliers
+    if (isBossOrBossSummon(creature))
+    {
+        statMod_health *= BossHealthMultiplier;
+        statMod_damage *= BossDamageMultiplier;
+        statMod_armor  *= BossArmorMultiplier;
+        statMod_mana   *= BossManaMultiplier;
+    }
 
     // Storage for the final values applied to the creature
     uint32 newFinalHealth = 0;
@@ -1045,6 +1068,17 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
     );
 
     float damageMultiplier = defaultMultiplier * statMod_global * statMod_damage;
+    if (ScalingMode == "power")
+    {
+        damageMultiplier = mapABInfo->damageScale * statMod_global * statMod_damage;
+    }
+    else if (ScalingMode == "hybrid")
+    {
+        if (mapABInfo->effectiveScalingPlayers > (float)mapABInfo->baselinePlayers && mapABInfo->baselinePlayers > 0)
+        {
+            damageMultiplier *= mapABInfo->damageScale;
+        }
+    }
     float scaledDamageMultiplier;
 
     LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | DamageMultiplier: ({}) = defaultMultiplier ({}) * statMod_global ({}) * statMod_damage ({})",

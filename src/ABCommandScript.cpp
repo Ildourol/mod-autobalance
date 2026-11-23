@@ -4,7 +4,97 @@
 #include "ABCreatureInfo.h"
 #include "ABMapInfo.h"
 #include "ABUtils.h"
+#include "ABWorldScript.h"
 #include "Message.h"
+
+bool AutoBalance_CommandScript::HandleABInfoCommand(ChatHandler* handler, const char* /*args*/)
+{
+    Player* player = handler->GetPlayer();
+    if (!player)
+        return false;
+
+    Map* map = player->GetMap();
+    if (!map || !map->IsDungeon())
+    {
+        handler->PSendSysMessage("|cff4CFF00[AutoBalance]|r This command can only be used inside a dungeon or raid instance.");
+        return true;
+    }
+
+    AutoBalanceMapInfo* mapABInfo = GetMapInfo(map);
+    InstanceMap* instanceMap = map->ToInstanceMap();
+
+    handler->PSendSysMessage("|cff4CFF00[AutoBalance Instance Info]|r");
+    handler->PSendSysMessage("Map: %s (ID: %u, Instance: %u), Difficulty: %s",
+        map->GetMapName(),
+        map->GetId(),
+        map->GetInstanceId(),
+        instanceMap && instanceMap->IsHeroic() ? "Heroic" : "Normal");
+    handler->PSendSysMessage("Players: Active: %u, Effective: %.2f, Baseline: %u, Adjusted Count: %u",
+        mapABInfo->actualPlayersInside,
+        mapABInfo->effectiveScalingPlayers,
+        mapABInfo->baselinePlayers,
+        mapABInfo->adjustedPlayerCount);
+    handler->PSendSysMessage("Capacity: Native: %u, Configured Max: %u",
+        mapABInfo->originalMapCapacity,
+        mapABInfo->configuredMaxCapacity);
+    handler->PSendSysMessage("Scaling Multipliers: Health: %.1f%%, Damage: %.1f%%, Armor: %.1f%%, Mana: %.1f%%",
+        mapABInfo->healthScale * 100.0f,
+        mapABInfo->damageScale * 100.0f,
+        mapABInfo->armorScale * 100.0f,
+        mapABInfo->manaScale * 100.0f);
+    handler->PSendSysMessage("Status: %s, Combat Locked: %s",
+        mapABInfo->enabled ? "|cff00ff00Enabled|r" : "|cffff0000Disabled|r",
+        mapABInfo->combatLocked ? "|cffff8000Yes|r" : "No");
+
+    return true;
+}
+
+bool AutoBalance_CommandScript::HandleABMapCommand(ChatHandler* handler, const char* args)
+{
+    return HandleABMapStatsCommand(handler, args);
+}
+
+bool AutoBalance_CommandScript::HandleABCreatureCommand(ChatHandler* handler, const char* args)
+{
+    return HandleABCreatureStatsCommand(handler, args);
+}
+
+bool AutoBalance_CommandScript::HandleABRecalcCommand(ChatHandler* handler, const char* /*args*/)
+{
+    Player* player = handler->GetPlayer();
+    if (!player)
+        return false;
+
+    Map* map = player->GetMap();
+    if (!map || !map->IsDungeon())
+    {
+        handler->PSendSysMessage("|cff4CFF00[AutoBalance]|r This command can only be used inside an instance.");
+        return true;
+    }
+
+    UpdateMapPlayerStats(map);
+    UpdateMapDataIfNeeded(map, true);
+
+    AutoBalanceMapInfo* mapABInfo = GetMapInfo(map);
+    handler->PSendSysMessage("|cff4CFF00[AutoBalance]|r Instance recalculation forced.");
+    handler->PSendSysMessage("Active Players: %u, Baseline: %u, Adjusted Count: %u, Health Scale: %.1f%%, Damage Scale: %.1f%%",
+        mapABInfo->actualPlayersInside,
+        mapABInfo->baselinePlayers,
+        mapABInfo->adjustedPlayerCount,
+        mapABInfo->healthScale * 100.0f,
+        mapABInfo->damageScale * 100.0f);
+
+    return true;
+}
+
+bool AutoBalance_CommandScript::HandleABReloadCommand(ChatHandler* handler, const char* /*args*/)
+{
+    handler->PSendSysMessage("|cff4CFF00[AutoBalance]|r Reloading module configuration...");
+    AutoBalance_WorldScript worldScript;
+    worldScript.OnBeforeConfigLoad(true);
+    handler->PSendSysMessage("|cff4CFF00[AutoBalance]|r Module configuration successfully reloaded.");
+    return true;
+}
 
 bool AutoBalance_CommandScript::HandleABSetOffsetCommand(ChatHandler* handler, const char* args)
 {

@@ -347,3 +347,101 @@ float         StatModifierRaid40M_Boss_Mana;
 float         StatModifierRaid40M_Boss_Armor;
 float         StatModifierRaid40M_Boss_Damage;
 float         StatModifierRaid40M_Boss_CCDuration;
+
+// Dynamic Capacity
+bool          DynamicCapacityEnable = false;
+bool          DynamicCapacityDungeonsEnable = true;
+bool          DynamicCapacityRaidsEnable = false;
+uint32        DynamicCapacityNormalDungeonMaxPlayers = 25;
+uint32        DynamicCapacityHeroicDungeonMaxPlayers = 25;
+uint32        DynamicCapacityNormalRaidMaxPlayers = 40;
+uint32        DynamicCapacityHeroicRaidMaxPlayers = 40;
+bool          DynamicCapacityUseMapOverrides = true;
+bool          DynamicCapacityRequireGroup = false;
+bool          DynamicCapacityGMBypass = true;
+std::map<uint32, uint32> DynamicCapacityMapOverrides;
+bool          RaidScalingInDungeons = true;
+
+// Scaling Mode & Exponents
+std::string   ScalingMode = "hybrid";
+float         ScalingHealthExponent = 1.0f;
+float         ScalingDamageExponent = 0.65f;
+float         ScalingArmorExponent = 0.5f;
+float         ScalingManaExponent = 1.0f;
+
+// Min & Max Players
+bool          MinPlayersEnable = true;
+uint32        MinPlayersDungeon = 1;
+uint32        MinPlayersRaid = 1;
+bool          MaxPlayersEnable = true;
+uint32        MaxPlayersDungeon = 25;
+uint32        MaxPlayersRaid = 40;
+
+// Per-Map Overrides
+std::map<uint32, AutoBalanceMapOverride> mapOverrides;
+
+// Creature Type & Rank Filtering
+bool          CreatureNormalEnable = true;
+bool          CreatureEliteEnable = true;
+bool          CreatureBossEnable = true;
+bool          CreatureSummonEnable = false;
+bool          CreaturePetEnable = false;
+bool          CreatureTotemEnable = false;
+bool          CreatureTriggerEnable = false;
+bool          CreatureCritterEnable = false;
+
+// Boss Specific Multipliers
+float         BossHealthMultiplier = 1.0f;
+float         BossDamageMultiplier = 1.0f;
+float         BossArmorMultiplier = 1.0f;
+float         BossManaMultiplier = 1.0f;
+
+// Level Scaling Options
+bool          LevelScalingEnable = false;
+bool          LevelScalingScaleCreatureLevel = false;
+uint8         LevelScalingMinLevel = 1;
+uint8         LevelScalingMaxLevel = 83;
+bool          LevelScalingUseHighestPlayerLevel = true;
+bool          LevelScalingUseAveragePlayerLevel = false;
+
+// Rewards
+bool          RewardsEnable = false;
+bool          RewardsScaleXP = false;
+bool          RewardsScaleMoney = false;
+bool          RewardsScaleLoot = false;
+
+// Announcements & Debug
+bool          AnnounceEnable = true;
+bool          AnnounceOnEnter = true;
+bool          AnnounceOnPlayerCountChange = true;
+bool          AnnounceToGMsOnly = false;
+bool          DebugLog = false;
+
+// Player Count Rules
+bool          PlayerCountCountGMs = false;
+bool          PlayerCountCountDeadPlayers = true;
+bool          PlayerCountCountOfflinePlayers = false;
+bool          PlayerCountCountPlayersAtEntranceOnly = false;
+bool          PlayerCountCountBots = true;
+float         PlayerCountBotWeight = 1.0f;
+
+// Group Rules
+bool          GroupRequireGroup = false;
+bool          GroupCountOnlySameGroup = false;
+
+// Recalculation Throttle & Combat Safety
+uint32        RecalculationThrottleMs = 1000;
+bool          RescaleInCombat = true;
+bool          PreserveHealthPercent = true;
+
+// Eligibility & Whitelist / Blacklist
+bool          EligibilityDungeonsEnable = true;
+bool          EligibilityRaidsEnable = true;
+bool          EligibilityBattlegroundsEnable = false;
+bool          EligibilityArenasEnable = false;
+bool          EligibilityOpenWorldEnable = false;
+bool          MapWhitelistEnable = false;
+std::list<uint32> mapWhitelist;
+bool          MapBlacklistEnable = true;
+std::list<uint32> mapBlacklist;
+

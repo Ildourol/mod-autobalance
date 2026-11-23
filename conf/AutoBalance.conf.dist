@@ -983,3 +983,139 @@ AutoBalance.PerDungeonPlayerCounts=
 # Their entire functionality (and more) has been moved to new settings referenced in this config file.
 AutoBalance.DungeonsOnly=
 AutoBalance.levelUseDbValuesWhenExists=
+
+###################################################################################################
+# EXTENDED DYNAMIC CAPACITY, POWER-LAW SCALING, AND PORTED tWoW FEATURES
+###################################################################################################
+
+###################################################################################################
+# DYNAMIC DUNGEON & RAID CAPACITY (PRE-ADMISSION & SCALING)
+#
+#    AutoBalance.DynamicCapacity.Enable
+#        Description: Enable dynamic instance capacity override. When enabled, instances allow
+#                     groups larger than standard DBC caps (e.g. up to 25 or 40 in 5-man dungeons).
+#                     NOTE: In AzerothCore, admitting >5 players into normal dungeons requires
+#                     an optional core pre-admission hook (see patches/ directory).
+#        Default:     0 - Disabled (Standard DBC limits)
+#                     1 - Enabled
+AutoBalance.DynamicCapacity.Enable = 0
+AutoBalance.DynamicCapacity.Dungeons.Enable = 1
+AutoBalance.DynamicCapacity.Raids.Enable = 0
+AutoBalance.DynamicCapacity.NormalDungeonMaxPlayers = 25
+AutoBalance.DynamicCapacity.HeroicDungeonMaxPlayers = 25
+AutoBalance.DynamicCapacity.NormalRaidMaxPlayers = 40
+AutoBalance.DynamicCapacity.HeroicRaidMaxPlayers = 40
+AutoBalance.DynamicCapacity.UseMapOverrides = 1
+AutoBalance.DynamicCapacity.RequireGroup = 0
+AutoBalance.DynamicCapacity.GMBypass = 1
+
+#
+#    AutoBalance.RaidScalingInDungeons
+#        Description: When players enter a normal 5-man dungeon as a raid group (or with >5 players),
+#                     scale creature stats dynamically for the full raid player count instead of
+#                     clamping to standard 5-man party size.
+#        Default:     1 - Enabled
+#                     0 - Disabled
+AutoBalance.RaidScalingInDungeons = 1
+
+###################################################################################################
+# SCALING MODE & POWER-LAW EXPONENTS
+#
+#    AutoBalance.Scaling.Mode
+#        Description: Mathematical scaling model applied to creatures.
+#                     "hybrid" - Uses classic inflection curve for <= baseline, and power-law scaling
+#                                above baseline (smoothly scales dungeons past 5 players).
+#                     "power"  - Pure ratio power-law scaling: scale = (players / baseline) ^ exp.
+#                     "tanh"   - Classic AutoBalance hyperbolic tangent curve.
+#        Default:     "hybrid"
+AutoBalance.Scaling.Mode = "hybrid"
+
+# Exponent configuration for power-law scaling (higher = steeper scaling)
+# Health is linear (1.0), damage is dampened (0.65) to prevent one-shot wipes
+AutoBalance.Scaling.HealthExponent = 1.0
+AutoBalance.Scaling.DamageExponent = 0.65
+AutoBalance.Scaling.ArmorExponent = 0.5
+AutoBalance.Scaling.ManaExponent = 1.0
+
+###################################################################################################
+# MINIMUM & MAXIMUM EFFECTIVE PLAYERS
+#
+#    Clamps the effective player count used for scaling calculations.
+###################################################################################################
+AutoBalance.MinPlayers.Enable = 1
+AutoBalance.MinPlayers.Dungeon = 1
+AutoBalance.MinPlayers.Raid = 1
+
+AutoBalance.MaxPlayers.Enable = 1
+AutoBalance.MaxPlayers.Dungeon = 25
+AutoBalance.MaxPlayers.Raid = 40
+
+###################################################################################################
+# CREATURE TYPE & RANK FILTERING
+#
+#    Enable or disable AutoBalance scaling on specific creature ranks and classifications.
+###################################################################################################
+AutoBalance.Creature.Normal.Enable = 1
+AutoBalance.Creature.Elite.Enable = 1
+AutoBalance.Creature.Boss.Enable = 1
+AutoBalance.Creature.Summon.Enable = 0
+AutoBalance.Creature.Pet.Enable = 0
+AutoBalance.Creature.Totem.Enable = 0
+AutoBalance.Creature.Trigger.Enable = 0
+AutoBalance.Creature.Critter.Enable = 0
+
+###################################################################################################
+# BOSS-SPECIFIC MULTIPLIERS
+###################################################################################################
+AutoBalance.Boss.HealthMultiplier = 1.0
+AutoBalance.Boss.DamageMultiplier = 1.0
+AutoBalance.Boss.ArmorMultiplier = 1.0
+AutoBalance.Boss.ManaMultiplier = 1.0
+
+###################################################################################################
+# ANNOUNCEMENTS & DEBUGGING
+###################################################################################################
+AutoBalance.Announce.Enable = 1
+AutoBalance.Announce.OnEnter = 1
+AutoBalance.Announce.OnPlayerCountChange = 1
+AutoBalance.Announce.ToGMsOnly = 0
+AutoBalance.Debug = 0
+
+###################################################################################################
+# PLAYER COUNT RULES
+###################################################################################################
+AutoBalance.PlayerCount.CountGMs = 0
+AutoBalance.PlayerCount.CountDeadPlayers = 1
+AutoBalance.PlayerCount.CountOfflinePlayers = 0
+AutoBalance.PlayerCount.CountPlayersAtEntranceOnly = 0
+AutoBalance.PlayerCount.CountBots = 1
+AutoBalance.PlayerCount.BotWeight = 1.0
+
+###################################################################################################
+# GROUP RULES
+###################################################################################################
+AutoBalance.RequireGroup = 0
+AutoBalance.CountOnlySameGroup = 0
+
+###################################################################################################
+# RECALCULATION THROTTLE & COMBAT SAFETY
+###################################################################################################
+AutoBalance.Recalculation.ThrottleMs = 1000
+AutoBalance.RescaleInCombat = 1
+AutoBalance.PreserveHealthPercent = 1
+
+###################################################################################################
+# ELIGIBILITY & WHITELISTS / BLACKLISTS
+###################################################################################################
+AutoBalance.Dungeons.Enable = 1
+AutoBalance.Raids.Enable = 1
+AutoBalance.Battlegrounds.Enable = 0
+AutoBalance.Arenas.Enable = 0
+AutoBalance.OpenWorld.Enable = 0
+
+AutoBalance.MapWhitelist.Enable = 0
+AutoBalance.MapWhitelist = ""
+
+AutoBalance.MapBlacklist.Enable = 1
+AutoBalance.MapBlacklist = "489,529,30,566,559,562,572"
+

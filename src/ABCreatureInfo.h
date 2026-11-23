@@ -54,6 +54,9 @@ public:
     bool        isCloneOfSummoner      = false;   // Whether or not the creature is a clone of its summoner
 
     Relevance   relevance              = AUTOBALANCE_RELEVANCE_UNCHECKED; // Whether or not the creature is relevant for scaling
+
+    float       baseHealthPct          = 100.0f; // Track HP percentage during combat rescaling
+    bool        isRescalingInCombat    = false;
 };
 
 

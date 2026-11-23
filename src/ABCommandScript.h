@@ -20,6 +20,11 @@ public:
     {
         static ChatCommandTable ABCommandTable =
         {
+            { "info",          HandleABInfoCommand,           SEC_PLAYER,      Console::Yes },
+            { "map",           HandleABMapCommand,            SEC_PLAYER,      Console::Yes },
+            { "creature",      HandleABCreatureCommand,       SEC_PLAYER,      Console::Yes },
+            { "recalc",        HandleABRecalcCommand,         SEC_GAMEMASTER,  Console::Yes },
+            { "reload",        HandleABReloadCommand,         SEC_ADMINISTRATOR, Console::Yes },
             { "setoffset",     HandleABSetOffsetCommand,      SEC_GAMEMASTER,  Console::Yes },
             { "getoffset",     HandleABGetOffsetCommand,      SEC_PLAYER,      Console::Yes },
             { "mapstat",       HandleABMapStatsCommand,       SEC_PLAYER,      Console::Yes },
@@ -35,6 +40,11 @@ public:
         return commandTable;
     };
 
+    static bool HandleABInfoCommand(ChatHandler* handler, const char* args);
+    static bool HandleABMapCommand(ChatHandler* handler, const char* args);
+    static bool HandleABCreatureCommand(ChatHandler* handler, const char* args);
+    static bool HandleABRecalcCommand(ChatHandler* handler, const char* args);
+    static bool HandleABReloadCommand(ChatHandler* handler, const char* args);
     static bool HandleABSetOffsetCommand(ChatHandler* handler, const char* args);
     static bool HandleABGetOffsetCommand(ChatHandler* handler, const char* args);
     static bool HandleABMapStatsCommand(ChatHandler* handler, const char* args);

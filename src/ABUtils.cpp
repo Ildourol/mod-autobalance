@@ -1771,6 +1771,52 @@ bool isCreatureRelevant(Creature* creature)
         return false;
     }
 
+    // Check creature rank and type filter configurations
+    CreatureTemplate const* cTemplate = creature->GetCreatureTemplate();
+    if (cTemplate)
+    {
+        if (creature->IsTrigger() && !CreatureTriggerEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if (creature->IsCritter() && !CreatureCritterEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if (creature->IsTotem() && !CreatureTotemEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if ((creature->IsPet() || creature->IsHunterPet()) && !CreaturePetEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if (creature->IsSummon() && !CreatureSummonEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if ((creature->IsDungeonBoss() || creature->isWorldBoss()) && !CreatureBossEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if (cTemplate->rank == CREATURE_ELITE_NORMAL && !CreatureNormalEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+        if ((cTemplate->rank == CREATURE_ELITE_ELITE || cTemplate->rank == CREATURE_ELITE_RAREELITE) && !CreatureEliteEnable)
+        {
+            creatureABInfo->relevance = AUTOBALANCE_RELEVANCE_FALSE;
+            return false;
+        }
+    }
+
     // if this is a pet or summon controlled by the player, make no changes
     if ((creature->IsHunterPet() || creature->IsPet() || creature->IsSummon()) && creature->IsControlledByPlayer())
     {
@@ -1945,6 +1991,37 @@ std::list<uint32> LoadDisabledDungeons(std::string dungeonIdString)
     }
 
     return dungeonIdList;
+}
+
+std::list<uint32> LoadDelimitedUintList(std::string const& delimitedString)
+{
+    std::string delimitedValue;
+    std::stringstream stream(delimitedString);
+    std::list<uint32> resultList;
+
+    while (std::getline(stream, delimitedValue, ','))
+    {
+        std::stringstream pairStream(delimitedValue);
+        std::string val;
+        pairStream >> val;
+        if (!val.empty())
+        {
+            auto id = atoi(val.c_str());
+            if (id > 0)
+                resultList.push_back(id);
+        }
+    }
+    return resultList;
+}
+
+bool IsMapInWhitelist(uint32 mapId)
+{
+    return std::find(mapWhitelist.begin(), mapWhitelist.end(), mapId) != mapWhitelist.end();
+}
+
+bool IsMapInBlacklist(uint32 mapId)
+{
+    return std::find(mapBlacklist.begin(), mapBlacklist.end(), mapId) != mapBlacklist.end();
 }
 
 std::map<uint32, uint32> LoadDistanceCheckOverrides(std::string dungeonIdString)
@@ -2290,6 +2367,22 @@ std::map<uint32, AutoBalanceStatModifiers> LoadStatModifierOverrides(std::string
 
 bool ShouldMapBeEnabled(Map* map)
 {
+    if (!map)
+        return false;
+
+    if (map->IsBattleground() && !EligibilityBattlegroundsEnable)
+        return false;
+    if (map->IsBattleArena() && !EligibilityArenasEnable)
+        return false;
+    if (!map->IsDungeon() && !EligibilityOpenWorldEnable)
+        return false;
+
+    if (MapWhitelistEnable && !IsMapInWhitelist(map->GetId()))
+        return false;
+
+    if (MapBlacklistEnable && IsMapInBlacklist(map->GetId()))
+        return false;
+
     if (map->IsDungeon())
     {
         // if globally disabled, return false
@@ -2315,6 +2408,11 @@ bool ShouldMapBeEnabled(Map* map)
             );
             return false;
         }
+
+        if (instanceMap->IsRaid() && !EligibilityRaidsEnable)
+            return false;
+        if (!instanceMap->IsRaid() && !EligibilityDungeonsEnable)
+            return false;
 
         // if the player count is less than 1, then we're not in an instance
         if (instanceMap->GetMaxPlayers() < 1)
@@ -2432,6 +2530,15 @@ void UpdateMapPlayerStats(Map* map)
     AutoBalanceMapInfo* mapABInfo   = GetMapInfo(map);
     InstanceMap*        instanceMap = map->ToInstanceMap();
 
+    // Recalculation throttle: avoid excessive re-evaluations during rapid joins/leaves
+    uint32 now = getMSTime();
+    if (mapABInfo->lastRecalcTime && (now - mapABInfo->lastRecalcTime < RecalculationThrottleMs) && !mapABInfo->allMapPlayers.empty())
+    {
+        mapABInfo->mapConfigTime = 1;
+        return;
+    }
+    mapABInfo->lastRecalcTime = now;
+
     //
     // Remember some values
     //
@@ -2447,99 +2554,158 @@ void UpdateMapPlayerStats(Map* map)
         oldAdjustedPlayerCount);
 
     //
-    // Update the player count
-    // Minimum of 1 to prevent scaling weirdness when only GMs are in the instnace
+    // Count active and effective players according to rules
     //
+    float effectivePlayers = 0.0f;
+    uint32 actualCount = 0;
+    Group* primaryGroup = nullptr;
 
-    mapABInfo->playerCount = mapABInfo->allMapPlayers.size() ? mapABInfo->allMapPlayers.size() : 1;
-
-    LOG_DEBUG("module.AutoBalance", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | playerCount = ({}).",
-        instanceMap->GetMapName(),
-        instanceMap->GetId(),
-        instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
-        mapABInfo->playerCount);
-
-    LOG_DEBUG("module.AutoBalance", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | combatLocked = ({}), combatLockMinPlayers = ({}).",
-        instanceMap->GetMapName(),
-        instanceMap->GetId(),
-        instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
-        mapABInfo->combatLocked,
-        mapABInfo->combatLockMinPlayers);
-
-    uint8 adjustedPlayerCount = 0;
-
-    //
-    // If combat is locked and the new player count is higher than the combat lock, update the combat lock
-    //
-
-    if(mapABInfo->combatLocked &&
-       mapABInfo->playerCount > oldPlayerCount &&
-       mapABInfo->playerCount > mapABInfo->combatLockMinPlayers)
+    for (Player* thisPlayer : mapABInfo->allMapPlayers)
     {
-        //
-        // Start with the actual player count
-        //
+        if (!thisPlayer)
+            continue;
 
-        adjustedPlayerCount = mapABInfo->playerCount;
+        if (thisPlayer->IsGameMaster() && !PlayerCountCountGMs)
+            continue;
 
-        //
-        // This is the new floor
-        //
+        if (!thisPlayer->IsAlive() && !PlayerCountCountDeadPlayers)
+            continue;
 
-        mapABInfo->combatLockMinPlayers = mapABInfo->playerCount;
+        if (GroupRequireGroup && !thisPlayer->GetGroup())
+            continue;
 
-        LOG_DEBUG("module.AutoBalance_CombatLocking", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | Combat is locked. Combat floor increased. New floor is ({}).",
-            instanceMap->GetMapName(),
-            instanceMap->GetId(),
-            instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
-            mapABInfo->combatLockMinPlayers);
+        if (GroupCountOnlySameGroup)
+        {
+            if (!primaryGroup && thisPlayer->GetGroup())
+                primaryGroup = thisPlayer->GetGroup();
+            if (primaryGroup && thisPlayer->GetGroup() != primaryGroup)
+                continue;
+        }
 
+        actualCount++;
+
+        bool isBot = (thisPlayer->GetSession() == nullptr);
+        if (isBot)
+        {
+            if (PlayerCountCountBots)
+                effectivePlayers += PlayerCountBotWeight;
+        }
+        else
+        {
+            effectivePlayers += 1.0f;
+        }
     }
+
+    mapABInfo->actualPlayersInside = actualCount;
+    mapABInfo->playerCount = actualCount ? (uint8)std::min<uint32>(255, actualCount) : 1;
+
+    LOG_DEBUG("module.AutoBalance", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | actualPlayersInside = ({}), effectivePlayers = ({:.2f}).",
+        instanceMap->GetMapName(),
+        instanceMap->GetId(),
+        instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
+        actualCount,
+        effectivePlayers);
+
     //
-    // If combat is otherwise locked
+    // Determine Map Baseline Capacity
     //
+    uint32 baseline = 5;
+    uint32 mapId = instanceMap->GetId();
+    if (mapOverrides.find(mapId) != mapOverrides.end() && mapOverrides[mapId].baselinePlayers > 0)
+        baseline = mapOverrides[mapId].baselinePlayers;
+    else if (instanceMap->IsRaid())
+        baseline = instanceMap->GetMaxPlayers();
+    else
+        baseline = 5;
+
+    mapABInfo->baselinePlayers = baseline;
+    mapABInfo->originalMapCapacity = instanceMap->GetMaxPlayers();
+
+    uint32 configuredCap = baseline;
+    if (DynamicCapacityEnable)
+    {
+        if (instanceMap->IsRaid())
+            configuredCap = instanceMap->IsHeroic() ? DynamicCapacityHeroicRaidMaxPlayers : DynamicCapacityNormalRaidMaxPlayers;
+        else
+            configuredCap = instanceMap->IsHeroic() ? DynamicCapacityHeroicDungeonMaxPlayers : DynamicCapacityNormalDungeonMaxPlayers;
+    }
+    mapABInfo->configuredMaxCapacity = configuredCap;
+
+    float adjustedPlayerCountF = effectivePlayers;
+
+    //
+    // Combat locking floor logic
+    //
+    if (mapABInfo->combatLocked && mapABInfo->playerCount > oldPlayerCount && mapABInfo->playerCount > mapABInfo->combatLockMinPlayers)
+    {
+        adjustedPlayerCountF = effectivePlayers;
+        mapABInfo->combatLockMinPlayers = mapABInfo->playerCount;
+        LOG_DEBUG("module.AutoBalance_CombatLocking", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | Combat is locked. Combat floor increased to ({}).",
+            instanceMap->GetMapName(), instanceMap->GetId(), instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "", mapABInfo->combatLockMinPlayers);
+    }
     else if (mapABInfo->combatLocked)
     {
-        //
-        // Start with the saved floor
-        //
-        adjustedPlayerCount = mapABInfo->combatLockMinPlayers ? mapABInfo->combatLockMinPlayers : mapABInfo->playerCount;
-
+        adjustedPlayerCountF = mapABInfo->combatLockMinPlayers ? (float)mapABInfo->combatLockMinPlayers : effectivePlayers;
         LOG_DEBUG("module.AutoBalance_CombatLocking", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | Combat is locked. Combat floor is ({}).",
-            instanceMap->GetMapName(),
-            instanceMap->GetId(),
-            instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
-            mapABInfo->combatLockMinPlayers);
+            instanceMap->GetMapName(), instanceMap->GetId(), instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "", mapABInfo->combatLockMinPlayers);
     }
+
     //
-    // If combat is not locked
+    // Min Players Clamp
     //
-    else
+    uint32 minLimit = mapABInfo->minPlayers;
+    if (MinPlayersEnable)
+        minLimit = std::max(minLimit, instanceMap->IsRaid() ? MinPlayersRaid : MinPlayersDungeon);
+
+    if (adjustedPlayerCountF < (float)minLimit)
+        adjustedPlayerCountF = (float)minLimit;
+
+    //
+    // Player Count Difficulty Offset
+    //
+    adjustedPlayerCountF += (float)PlayerCountDifficultyOffset;
+
+    //
+    // Max Players Clamp
+    //
+    if (MaxPlayersEnable)
     {
-        //
-        // Start with the actual player count
-        //
-        adjustedPlayerCount = mapABInfo->playerCount;
+        uint32 maxLimit = instanceMap->IsRaid() ? MaxPlayersRaid : MaxPlayersDungeon;
+        if (mapOverrides.find(mapId) != mapOverrides.end() && mapOverrides[mapId].maxPlayers > 0)
+            maxLimit = mapOverrides[mapId].maxPlayers;
+
+        if (adjustedPlayerCountF > (float)maxLimit)
+            adjustedPlayerCountF = (float)maxLimit;
     }
 
-    //
-    // If the adjusted player count is below the min players setting, adjust it
-    //
-
-    if (adjustedPlayerCount < mapABInfo->minPlayers)
-        adjustedPlayerCount = mapABInfo->minPlayers;
-
-    //
-    // Adjust by the PlayerDifficultyOffset
-    //
-
-    adjustedPlayerCount += PlayerCountDifficultyOffset;
-
-    //
-    // Store the adjusted player count in the map's info
-    //
-
+    mapABInfo->effectiveScalingPlayers = adjustedPlayerCountF;
+    uint8 adjustedPlayerCount = (uint8)std::max(1.0f, std::round(adjustedPlayerCountF));
     mapABInfo->adjustedPlayerCount = adjustedPlayerCount;
+
+    //
+    // Calculate Power-Law Scaling Multipliers
+    //
+    float expHealth = ScalingHealthExponent;
+    float expDamage = ScalingDamageExponent;
+    float expArmor  = ScalingArmorExponent;
+    float expMana   = ScalingManaExponent;
+
+    if (mapOverrides.find(mapId) != mapOverrides.end())
+    {
+        if (mapOverrides[mapId].healthExponent >= 0.0f)
+            expHealth = mapOverrides[mapId].healthExponent;
+        if (mapOverrides[mapId].damageExponent >= 0.0f)
+            expDamage = mapOverrides[mapId].damageExponent;
+    }
+
+    float ratio = baseline > 0 ? (adjustedPlayerCountF / (float)baseline) : 1.0f;
+    if (ratio <= 0.0f)
+        ratio = 0.05f;
+
+    mapABInfo->healthScale = std::pow(ratio, expHealth);
+    mapABInfo->damageScale = std::pow(ratio, expDamage);
+    mapABInfo->armorScale  = std::pow(ratio, expArmor);
+    mapABInfo->manaScale   = std::pow(ratio, expMana);
 
     //
     // If the adjustedPlayerCount changed, schedule this map for a reconfiguration

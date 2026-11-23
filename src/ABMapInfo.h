@@ -58,5 +58,17 @@ public:
 
     uint8    prevMapLevel                       = 0;     // Used to reduce calculations when they are not necessary
     bool     initialized                        = false; // Whether or not the map has been initialized
+
+    // Extended baseline preservation, dynamic capacity & power-law scaling metrics
+    uint32   originalMapCapacity                = 5;     // Native DBC capacity (e.g. 5 for dungeon, 10/25/40 for raid)
+    uint32   configuredMaxCapacity              = 5;     // Configured dynamic capacity limit
+    uint32   actualPlayersInside                = 0;     // Total actual players present inside the instance
+    float    effectiveScalingPlayers            = 1.0f;  // Effective player count after bot weights, offsets & clamps
+    uint32   baselinePlayers                    = 5;     // Standard group baseline (5 for dungeon, 10/25/40 for raid)
+    float    healthScale                        = 1.0f;  // Current calculated health multiplier
+    float    damageScale                        = 1.0f;  // Current calculated damage multiplier
+    float    armorScale                         = 1.0f;  // Current calculated armor multiplier
+    float    manaScale                          = 1.0f;  // Current calculated mana multiplier
+    uint32   lastRecalcTime                     = 0;     // Timestamp in milliseconds of last recalculation (for throttle)
 };
 #endif
